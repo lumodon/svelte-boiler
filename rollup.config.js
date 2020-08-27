@@ -7,8 +7,10 @@ import svelte from 'rollup-plugin-svelte';
 import sveltePreprocess from 'svelte-preprocess';
 import livereload from 'rollup-plugin-livereload';
 import { terser } from 'rollup-plugin-terser';
+import del from 'rollup-plugin-delete';
 
 const production = !process.env.ROLLUP_WATCH;
+console.log('production: ', production);
 
 const serve = () => {
   let started = false;
@@ -21,34 +23,35 @@ const serve = () => {
         require('child_process')
           .spawn('npm', ['run', 'start', '--', '--dev'], {
             stdio: ['ignore', 'inherit', 'inherit'],
-            shell: true
+            shell: true,
           });
       }
-    }
+    },
   };
 };
 
 export default {
   input: 'src/main.js',
   output: {
-    sourcemap: true,
+    sourcemap: !production,
     format: 'iife',
     name: 'app',
     file: 'public/build/bundle.js',
   },
   plugins: [
+    del({ targets: 'public/build/*' }),
     svelte({
       dev: !production,
       css: css => {
-        css.write('public/build/bundle.css');
+        css.write('bundle.css', !production);
       },
       preprocess: sveltePreprocess(),
     }),
     resolve({
       browser: true,
       dedupe: importee =>
-        importee === 'svelte' ||
-        importee.startsWith('svelte/'),
+        importee === 'svelte'
+        || importee.startsWith('svelte/'),
     }),
     commonjs(),
 
@@ -62,7 +65,7 @@ export default {
 
     // If we're building for production (npm run build
     // instead of npm run dev), minify
-    production && terser()
+    production && terser(),
   ],
   external: ['vscode'],
   watch: {
